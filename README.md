@@ -49,6 +49,9 @@ GET https://api.github.com/repos/linkerd/linkerd2/actions/workflows/:workflow_id
 GET repos/linkerd/linkerd2/check-runs/:check_run_id/annotations
 ```
 
+Please note the report takes about an hour to generate, due to having imposed
+throttling on the Github API requests to avoid hitting the rate limit.
+
 ### Authentication
 
 The Github API requests are authenticated using the `REPORTS_TOKEN` secret, containing
@@ -56,11 +59,18 @@ a Personal Access Token belonging to l5d-bot.
 
 ### Testing
 
-`go test /.cmd` will test that the html report is generated without errors, using
-as inputs the list of jobs and annotations found under `cmd/testdata/jobs.json`
+`go test ./cmd` will test that the html report is generated without errors, using
+as inputs the list of jobs and annotations found under `./cmd/testdata/jobs.json`
 and `cmd/testdata/annotations.json`.
 
 You can view the sample report generated with that data with `go test ./cmd -v`
+
+Those sample files under `./cmd/testdata` can be updated with real data by
+setting the `REFRESH_DATA` environment variable prior to running, e.g.:
+
+```
+REFRESH_DATA=1 GITHUB_TOKEN=xxx go run ./cmd > report.html
+```
 
 ## License
 
