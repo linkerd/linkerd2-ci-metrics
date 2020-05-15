@@ -50,7 +50,7 @@ const jobsSuccessRates = (id, labels, datasets) => {
       scales: {
         xAxes: [{
           ticks: {
-            beginAtZero: false
+            beginAtZero: true
           },
           gridLines: {
             display: false
