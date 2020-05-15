@@ -382,7 +382,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if _, ok := os.LookupEnv(refreshData); ok {
-		b, err := json.Marshal(jobs)
+		b, err := json.MarshalIndent(jobs, "", "  ")
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -390,7 +390,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		b, err = json.Marshal(annotations)
+		b, err = json.MarshalIndent(annotations, "", "  ")
 		if err != nil {
 			log.Fatal(err)
 		}

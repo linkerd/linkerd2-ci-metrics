@@ -49,6 +49,9 @@ GET https://api.github.com/repos/linkerd/linkerd2/actions/workflows/:workflow_id
 GET repos/linkerd/linkerd2/check-runs/:check_run_id/annotations
 ```
 
+Please note the report takes about an hour to generate, due to having imposed
+throttling on the Github API requests to avoid hitting the rate limit.
+
 ### Authentication
 
 The Github API requests are authenticated using the `REPORTS_TOKEN` secret, containing
