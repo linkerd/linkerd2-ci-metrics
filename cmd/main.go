@@ -273,8 +273,7 @@ func getWorkflowMessages(workflow string, annotations []ErrorAnn) pairlist.PairL
 }
 
 // getJobSuccessRates returns a json array for the job success rates
-// ordered from least to most sucessful, where the jobs with a 100%
-// success rates are grouped into "Others" at the end
+// ordered from least to most sucessful
 func getJobSuccessRates(runs []JobRun) ([]byte, error) {
 	totalRuns := make(map[string]int)
 	successes := make(map[string]int)
@@ -285,12 +284,6 @@ func getJobSuccessRates(runs []JobRun) ([]byte, error) {
 		}
 	}
 	for job, num := range successes {
-		if totalRuns[job] == num && job != "Others" {
-			delete(successes, job)
-			successes["Others"] = 100
-			totalRuns["Others"] = 100
-			continue
-		}
 		successes[job] = num * 100 / totalRuns[job]
 	}
 	json, err := json.Marshal(pairlist.RankByValue(successes, false))
