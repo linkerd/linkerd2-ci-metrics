@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -18,9 +19,10 @@ import (
 )
 
 const (
-	owner      = "linkerd"
-	repo       = "linkerd2"
-	tokenLabel = "GITHUB_TOKEN"
+	owner       = "linkerd"
+	repo        = "linkerd2"
+	tokenLabel  = "GITHUB_TOKEN"
+	refreshData = "REFRESH_DATA"
 
 	// throttling requests to the Github API for retrieving annotations
 	// at 1 req/sec, which puts us below the 5000 requests/hour limit
@@ -378,6 +380,23 @@ func main() {
 	jobs, annotations, err := getData()
 	if err != nil {
 		log.Fatal(err)
+	}
+	if _, ok := os.LookupEnv(refreshData); ok {
+		b, err := json.Marshal(jobs)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = ioutil.WriteFile("cmd/testdata/jobs.json", b, 0664); err != nil {
+			log.Fatal(err)
+		}
+
+		b, err = json.Marshal(annotations)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = ioutil.WriteFile("cmd/testdata/annotations.json", b, 0664); err != nil {
+			log.Fatal(err)
+		}
 	}
 	if err = processData(jobs, annotations); err != nil {
 		log.Fatal(err)
