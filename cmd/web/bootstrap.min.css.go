@@ -1,6 +1,6 @@
 package web
 
-const BootstrapCss = `
+const BootstrapCSS = `
 /*!
  * Bootstrap v4.5.0 (https://getbootstrap.com/)
  * Copyright 2011-2020 The Bootstrap Authors

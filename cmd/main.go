@@ -40,6 +40,8 @@ var (
 	throttle             = time.Tick(rateLimit)
 )
 
+// JobRun holds the result state for a CI job, including the name of its
+// parent workflow
 type JobRun struct {
 	Workflow   string
 	Job        string
@@ -48,6 +50,8 @@ type JobRun struct {
 	Completed  github.Timestamp
 }
 
+// ErrorAnn holds the details of a CI run failure extracted from a
+// Github annotation, and also points to its correspoinding JobRun
 type ErrorAnn struct {
 	JobRun
 	Path      string
@@ -56,26 +60,26 @@ type ErrorAnn struct {
 	Message   string
 }
 
+// WorkflowWithMessages hold the details of a particular Workflow run,
+// with its ID, Name, and list of error messages associated to it
 type WorkflowWithMessages struct {
 	Id       string
 	Name     string
 	Messages pairlist.PairList
 }
 
+// Page holds the data passed to the HTML template
 type Page struct {
-	ChartJs              template.JS
-	MainJs               template.JS
-	BootstrapCss         template.CSS
-	MainCss              template.CSS
+	ChartJS              template.JS
+	MainJS               template.JS
+	BootstrapCSS         template.CSS
+	MainCSS              template.CSS
 	JobSuccessRatesArr   template.JS
 	WorkflowsArr         template.JS
 	Start                string
 	End                  string
 	GlobalSuccessRate    int
 	WorkflowSuccessRates pairlist.PairList
-}
-
-func rateLimitedCall() {
 }
 
 // getWorkflowName returns the label for the workflow corresponding to workflowID.
@@ -312,21 +316,17 @@ func getWorkflowSuccessRates(runs []JobRun) (int, pairlist.PairList) {
 	for workflow, num := range successes {
 		successes[workflow] = num * 100 / totalRunsPerJob[workflow]
 	}
+
 	if totalRuns > 0 {
 		return totalSuccesses * 100 / totalRuns, pairlist.RankByValue(successes, false)
-    if totalRuns > 0 {
-		return totalSuccesses * 100 / totalRuns, pairlist.RankByValue(successes, false)
 	}
-
-    return 0, pairlist.PairList{}
-		return 0, pairlist.PairList{}
-	}
+	return 0, pairlist.PairList{}
 }
 
 // processData retrieves all the CI success and error message metrics and
 // displays them in an index.html file
 func processData(jobs []JobRun, annotations []ErrorAnn) error {
-	jobSuccessRatesJson, err := getJobSuccessRates(jobs)
+	jobSuccessRatesJSON, err := getJobSuccessRates(jobs)
 	if err != nil {
 		return err
 	}
@@ -357,12 +357,12 @@ func processData(jobs []JobRun, annotations []ErrorAnn) error {
 		return err
 	}
 	data := Page{
-		ChartJs:              template.JS(web.ChartJs),
-		MainJs:               template.JS(web.MainJs),
-		BootstrapCss:         template.CSS(web.BootstrapCss),
-		MainCss:              template.CSS(web.MainCss),
-		JobSuccessRatesArr:   template.JS(jobSuccessRatesJson),
-		WorkflowsArr:         template.JS(workflowsJson),
+		ChartJS:              template.JS(web.ChartJS),
+		MainJS:               template.JS(web.MainJS),
+		BootstrapCSS:         template.CSS(web.BootstrapCSS),
+		MainCSS:              template.CSS(web.MainCSS),
+		JobSuccessRatesArr:   template.JS(jobSuccessRatesJSON),
+		WorkflowsArr:         template.JS(workflowsJSON),
 		Start:                monthAgo.Format(time.RFC822),
 		End:                  now.Format(time.RFC822),
 		GlobalSuccessRate:    globalSuccessRate,

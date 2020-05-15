@@ -1,6 +1,6 @@
 package web
 
-const MainCss = `
+const MainCSS = `
 body {
   padding: 20px;
   padding-top: 0;

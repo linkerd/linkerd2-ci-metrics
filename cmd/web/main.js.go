@@ -1,6 +1,6 @@
 package web
 
-const MainJs = `
+const MainJS = `
 // Chart.js axis labels don't support natively word wrapping, so here's a workaround:
 const wrap = (str, limit) => {
   const words = str.split(' ');

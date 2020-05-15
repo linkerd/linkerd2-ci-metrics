@@ -4,10 +4,10 @@ const Index = `<html lang="en">
 <html>
   <head>
     <meta charset="UTF-8">
-    <script>{{ .ChartJs }}</script>
-    <script>{{ .MainJs }}</script>
-    <style>{{ .BootstrapCss }}</style>
-    <style>{{ .MainCss }}</style>
+    <script>{{ .ChartJS }}</script>
+    <script>{{ .MainJS }}</script>
+    <style>{{ .BootstrapCSS }}</style>
+    <style>{{ .MainCSS }}</style>
     <script>
       const jobsSuccessRatesArr = {{ .JobSuccessRatesArr }};
       const workflowsArr = {{ .WorkflowsArr }};
