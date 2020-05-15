@@ -314,7 +314,11 @@ func getWorkflowSuccessRates(runs []JobRun) (int, pairlist.PairList) {
 	}
 	if totalRuns > 0 {
 		return totalSuccesses * 100 / totalRuns, pairlist.RankByValue(successes, false)
-	} else {
+    if totalRuns > 0 {
+		return totalSuccesses * 100 / totalRuns, pairlist.RankByValue(successes, false)
+	}
+
+    return 0, pairlist.PairList{}
 		return 0, pairlist.PairList{}
 	}
 }
@@ -341,7 +345,7 @@ func processData(jobs []JobRun, annotations []ErrorAnn) error {
 		}
 		messages = append(messages, m)
 	}
-	workflowsJson, err := json.Marshal(messages)
+	workflowsJSON, err := json.Marshal(messages)
 	if err != nil {
 		return err
 	}
