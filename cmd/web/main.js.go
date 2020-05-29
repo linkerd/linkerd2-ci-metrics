@@ -85,6 +85,11 @@ const workflowMessages = (workflow, labels, datasets) => {
         text: workflow.Name
       },
       scales: {
+        xAxes: [{
+          ticks: {
+            beginAtZero: true
+          }
+        }],
         yAxes: [{
           ticks: {
             beginAtZero: true,
