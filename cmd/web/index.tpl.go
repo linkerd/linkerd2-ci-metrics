@@ -20,7 +20,7 @@ const Index = `<html lang="en">
           const labels = workflow.Messages.map(m => m.Key);
           const datasets = workflow.Messages.map(m => m.Value);
           chart = workflowMessages(workflow, labels, datasets);
-	  chart.canvas.parentNode.style.height = 80 + workflow.Messages.length*40;
+	  chart.canvas.parentNode.style.height = 80 + workflow.Messages.length*70;
         });
       };
     </script>

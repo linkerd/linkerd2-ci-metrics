@@ -30,17 +30,27 @@ const (
 )
 
 var (
-	completed            = "completed"
-	all                  = "all"
-	interestingWorkflows = []string{"KinD integration", "Cloud integration", "Release"}
-	ctx                  context.Context
-	client               *github.Client
-	optBigListPage       = &github.ListOptions{PerPage: 100}
-	workflows            = map[int64]string{}
-	now                  = time.Now()
-	monthAgo             = now.AddDate(0, -1, 0)
-	throttle             = time.Tick(rateLimit)
+	completed = "completed"
+	all       = "all"
+	workflows = map[string]workflowMeta{
+		"kind_integration.yml":  workflowMeta{"KinD integration", true},
+		"cloud_integration.yml": workflowMeta{"Cloud integration", true},
+		"release.yml":           workflowMeta{"Release", true},
+		"static_checks.yml":     workflowMeta{"Static checks", false},
+		"unit_tests.yml":        workflowMeta{"Unit tests", false},
+	}
+	ctx            context.Context
+	client         *github.Client
+	optBigListPage = github.ListOptions{PerPage: 100}
+	now            = time.Now()
+	monthAgo       = now.AddDate(0, -1, 0)
+	throttle       = time.Tick(rateLimit)
 )
+
+type workflowMeta struct {
+	name             string
+	fetchAnnotations bool
+}
 
 // JobRun holds the result state for a CI job, including the name of its
 // parent workflow
@@ -84,27 +94,12 @@ type Page struct {
 	WorkflowSuccessRates pairlist.PairList
 }
 
-// getWorkflowName returns the label for the workflow corresponding to workflowID.
-// If that ID hasn't been cached yet, a call to the Github API is made
-func getWorkflowName(workflowID int64) (string, error) {
-	name, ok := workflows[workflowID]
-	if ok {
-		return name, nil
-	}
-	workflow, _, err := client.Actions.GetWorkflowByID(ctx, owner, repo, workflowID)
-	if err != nil {
-		return "", err
-	}
-	workflows[workflowID] = *workflow.Name
-	return *workflow.Name, nil
-}
-
 // getAnnotations returns the list of annotations for the checkRunID
 // Generic annotations with messages like "Process completed with exit code #"
 // are not considered, neither are the jobs that were canceled because a sibling
 // job didn't complete successfully.
 func getAnnotations(checkRunID int64, job JobRun) ([]ErrorAnn, error) {
-	annotations, _, err := client.Checks.ListCheckRunAnnotations(ctx, owner, repo, checkRunID, optBigListPage)
+	annotations, _, err := client.Checks.ListCheckRunAnnotations(ctx, owner, repo, checkRunID, &optBigListPage)
 	if err != nil {
 		return nil, err
 	}
@@ -127,22 +122,11 @@ func getAnnotations(checkRunID int64, job JobRun) ([]ErrorAnn, error) {
 	return errorAnns, nil
 }
 
-// isInteresting checks if the workflow is in the list of workflows
-// (interestingWorkflows) for which we want to retrieve annotations
-func isInteresting(workflow string) bool {
-	for _, w := range interestingWorkflows {
-		if workflow == w {
-			return true
-		}
-	}
-	return false
-}
-
 // getJobRuns returns the list of jobs and annotations for the given checkSuiteID and
-// workflowName. Only the workflows that have been completed, haven't been cancelled
+// workflow. Only the workflows that have been completed, haven't been cancelled
 // and started during the last month are returned. The third argument returns true if
 // there are more result pages available.
-func getJobRuns(checkSuiteID int64, workflowName string) ([]JobRun, []ErrorAnn, bool, error) {
+func getJobRuns(checkSuiteID int64, workflow workflowMeta) ([]JobRun, []ErrorAnn, bool, error) {
 	opt := &github.ListCheckRunsOptions{Status: &completed, Filter: &all}
 	checkRuns, _, err := client.Checks.ListCheckRunsCheckSuite(ctx, owner, repo, int64(checkSuiteID), opt)
 	if err != nil {
@@ -161,7 +145,7 @@ func getJobRuns(checkSuiteID int64, workflowName string) ([]JobRun, []ErrorAnn, 
 		}
 
 		job := JobRun{
-			Workflow:   workflowName,
+			Workflow:   workflow.name,
 			Job:        checkRun.GetName(),
 			Conclusion: checkRun.GetConclusion(),
 			Started:    checkRun.GetStartedAt(),
@@ -170,7 +154,7 @@ func getJobRuns(checkSuiteID int64, workflowName string) ([]JobRun, []ErrorAnn, 
 
 		jobs = append(jobs, job)
 
-		if !isInteresting(workflowName) {
+		if !workflow.fetchAnnotations {
 			continue
 		}
 
@@ -204,57 +188,50 @@ func getData() ([]JobRun, []ErrorAnn, error) {
 	tc := oauth2.NewClient(ctx, ts)
 
 	client = github.NewClient(tc)
-	opt := optBigListPage
 	var jobs []JobRun
 	var annotations []ErrorAnn
-out:
-	for {
-		runs, resp, err := client.Actions.ListRepositoryWorkflowRuns(ctx, owner, repo, opt)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		var workflowJobs []JobRun
-		var workflowAnnotations []ErrorAnn
-		for _, run := range runs.WorkflowRuns {
-			if run.GetConclusion() == "cancelled" {
-				continue
-			}
-			url := run.GetCheckSuiteURL()
-			checkSuiteIDstr := url[strings.LastIndex(url, "/")+1:]
-			checkSuiteID, err := strconv.Atoi(checkSuiteIDstr)
-			if err != nil {
-				continue
-			}
-
-			workflowURL := run.GetWorkflowURL()
-			workflowIDstr := workflowURL[strings.LastIndex(workflowURL, "/")+1:]
-			workflowID, err := strconv.Atoi(workflowIDstr)
-			if err != nil {
-				continue
-			}
-			workflowName, err := getWorkflowName(int64(workflowID))
+	for workflowFile, workflowMeta := range workflows {
+		opt := &github.ListWorkflowRunsOptions{"", "", "", "", optBigListPage}
+	out:
+		for {
+			runs, resp, err := client.Actions.ListWorkflowRunsByFileName(ctx, owner, repo, workflowFile, opt)
 			if err != nil {
 				return nil, nil, err
 			}
 
-			jobRuns, jobAnnotations, nextPage, err := getJobRuns(int64(checkSuiteID), workflowName)
-			if err != nil {
-				return nil, nil, err
-			}
-			if !nextPage {
-				break out
-			}
-			workflowJobs = append(workflowJobs, jobRuns...)
-			workflowAnnotations = append(workflowAnnotations, jobAnnotations...)
-		}
+			var workflowJobs []JobRun
+			var workflowAnnotations []ErrorAnn
+			for _, run := range runs.WorkflowRuns {
+				if run.GetConclusion() == "cancelled" {
+					continue
+				}
+				url := run.GetCheckSuiteURL()
+				checkSuiteIDstr := url[strings.LastIndex(url, "/")+1:]
+				checkSuiteID, err := strconv.Atoi(checkSuiteIDstr)
+				if err != nil {
+					continue
+				}
 
-		jobs = append(jobs, workflowJobs...)
-		annotations = append(annotations, workflowAnnotations...)
-		if resp.NextPage == 0 {
-			break
+				jobRuns, jobAnnotations, nextPage, err := getJobRuns(int64(checkSuiteID), workflowMeta)
+				if err != nil {
+					return nil, nil, err
+				}
+				if !nextPage {
+					jobs = append(jobs, workflowJobs...)
+					annotations = append(annotations, workflowAnnotations...)
+					break out
+				}
+				workflowJobs = append(workflowJobs, jobRuns...)
+				workflowAnnotations = append(workflowAnnotations, jobAnnotations...)
+			}
+
+			jobs = append(jobs, workflowJobs...)
+			annotations = append(annotations, workflowAnnotations...)
+			if resp.NextPage == 0 {
+				break
+			}
+			opt.Page = resp.NextPage
 		}
-		opt.Page = resp.NextPage
 	}
 
 	return jobs, annotations, nil
