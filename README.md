@@ -33,16 +33,12 @@ The program makes use of Google's
 Github APIs:
 
 ```
-# This gives us a list of check suite IDs:
-GET /repos/linkerd/linkerd2/actions/runs
+# This gives us a list of check suite IDs, for a given workflow name:
+GET /repos/linkerd/linkerd2/actions/workflows/:workflow_name/runs
 
-# For each check suite ID, this gives us the check run ID, job name, workflow
-# ID, completion status and timestamps:
+# For each check suite ID, this gives us the check run ID, job name,
+# completion status and timestamps:
 GET /repos/linkerd/linkerd2/check-suites/:check_suite_id/check-runs
-
-# For each workflow ID, this gives us the workflow name
-# (this can be cached across check runs):
-GET https://api.github.com/repos/linkerd/linkerd2/actions/workflows/:workflow_id
 
 # For each check run ID, we invoke the annotations API which gives us the file
 # name and error message
