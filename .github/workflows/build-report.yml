@@ -13,7 +13,7 @@ jobs:
     steps:
     - name: Checkout code
       # actions/checkout@v2
-      uses: actions/checkout@722adc6
+      uses: actions/checkout@722adc63f1aa60a57ec37892e133b1d319cae598
     - name: Unit tests
       run: |
         go test ./...
@@ -28,7 +28,7 @@ jobs:
         fi
     - name: Upload report
       # actions/upload-artifact@v1
-      uses: actions/upload-artifact@3446296
+      uses: actions/upload-artifact@3446296876d12d4e3a0f3145a3c87e67bf0a16b5
       with:
         name: report
         path: report.html
